@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-import PIL.BmpImagePlugin
+from enum import Enum, unique
 import PIL.JpegImagePlugin
 from transformers import CLIPProcessor, CLIPModel, \
     CLIPTokenizer, BlipProcessor, BlipForConditionalGeneration, \
@@ -7,7 +7,38 @@ from transformers import CLIPProcessor, CLIPModel, \
 import pandas as pd
 import numpy as np
 import chromadb
-import PIL
+
+@unique
+class Modalities(Enum):
+    ti = "text_to_image"
+    it = "image_to_text"
+    vt = "voice_to_text"
+    tv = "text_to_voice"
+
+    @staticmethod
+    def get_modality_config(modality) -> dict:
+        config = None
+
+        if modality == Modalities.ti:
+            config = {
+                "model_name": CLIPModel,
+                "processor_name": CLIPProcessor,
+                "tokenizer_name": CLIPTokenizer
+            }
+        elif modality == Modalities.it:
+            config = {
+                "model_name": BlipForConditionalGeneration,
+                "processor_name": BlipProcessor,
+                "tokenizer_name": BertTokenizer
+            }
+        elif modality == Modalities.tv:
+            config = {
+                "model_name": BarkModel,
+                "processor_name": AutoProcessor,
+                "tokenizer_name": None
+            }
+
+        return config
 
 
 @dataclass
@@ -19,34 +50,17 @@ class Model:
     processor: CLIPProcessor = None
     tokenizer: CLIPTokenizer = None
 
-    def get_model_info(self, modality: str) -> tuple:
+    def get_model_info(self, modality) -> tuple:
 
-        modalities = {
-            "ti": {
-                "model_name": CLIPModel,
-                "processor_name": CLIPProcessor,
-                "tokenizer_name": CLIPTokenizer
-            },
-            "it": {
-                "model_name": BlipForConditionalGeneration,
-                "processor_name": BlipProcessor,
-                "tokenizer_name": BertTokenizer
-            },
-            "tv": {
-                "model_name": BarkModel,
-                "processor_name": AutoProcessor,
-                "tokenizer_name": None
-            }
-        }
-
-        model_name, processor_name, tokenizer_name = modalities[modality]
+        # Get the model, processor & tokenizer to use
+        modality_config = Modalities.get_modality_config(modality)
 
         # Save the model to device
-        self.model = model_name.from_pretrained(self.model_id).to(self.device)
+        self.model = modality_config["model_name"].from_pretrained(self.model_id).to(self.device)
         # Get the processor
-        self.processor = processor_name.from_pretrained(self.model_id)
+        self.processor = modality_config["processor_name"].from_pretrained(self.model_id)
         # Get the tokenizer
-        self.tokenizer = tokenizer_name.from_pretrained(self.model_id) if tokenizer_name is not None else None
+        self.tokenizer = modality_config["tokenizer_name"].from_pretrained(self.model_id) if modality_config["tokenizer_name"] is not None else None
         # Return model, processor & tokenizer
         return self.model, self.processor, self.tokenizer
 
