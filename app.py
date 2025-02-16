@@ -1,10 +1,6 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
-from shared.classes import Chroma as ch
 import shared.functions as fns
-from datetime import datetime
-from PIL import Image
-import pandas as pd
 
 st.set_page_config(page_title="Multimodal Image Retrieval System")
 
@@ -20,31 +16,6 @@ selected = option_menu(
         "nav-link-selected": {"background-color": "purple", "padding-top": "-100px"}
     }
 )
-
-def run_text_to_image(query: str, create_collection: bool=False, add_data: bool=False) -> dict:
-    df = pd.read_csv("images/image.csv")
-    df.drop(columns=["Unnamed: 0"], inplace=True)
-    df["image"] = df["filepath"].apply(lambda x: Image.open(x))
-
-    image_data_df = fns.get_all_images_embedding(df, "image")
-
-    chroma = ch(collection_name="my_collection")
-
-    if create_collection:
-        collection = chroma.create_collection(db_metadata={
-                "description": "my first Chroma collection",
-                "created": str(datetime.now()),
-                "hnsw:space": "cosine",
-            })
-    else:
-        collection = chroma.get_collection()
-
-    if add_data:
-        chroma.add_data(image_data_df)
-
-    res = fns.get_results(query, collection)
-
-    return res
 
 if selected == "Text Mode":
     st.title('Text Mode')
@@ -78,7 +49,7 @@ if selected == "Text Mode":
     if st.session_state.messages_text != [] and st.session_state.messages_text[-1]["role"] != "assistant":
         with st.chat_message("assistant", avatar='icons/assistant.png'):
             with st.spinner("Getting your image(s)..."):
-                response = run_text_to_image(prompt)  
+                response = fns.run_text_to_image(prompt)  
                 images = [img['image'] for img in response["metadatas"][0]]
                 captions = fns.generate_captions(response)
 
@@ -142,7 +113,7 @@ if selected == "Voice Mode":
     if st.session_state.messages_voice != [] and st.session_state.messages_voice[-1]["role"] != "assistant":
         with st.chat_message("assistant", avatar='icons/assistant.png'):
             with st.spinner("Getting your image(s)..."):
-                response = run_text_to_image(prompt)
+                response = fns.run_text_to_image(prompt)
                 images = [img['image'] for img in response["metadatas"][0]]
                 captions = fns.generate_captions(response)
 
@@ -150,7 +121,6 @@ if selected == "Voice Mode":
 
         imgs = []
         caps = []
-        audio_dict = {}
         audios = []
         for col, image, caption in zip(cols, images, captions):
             with col:
@@ -159,11 +129,12 @@ if selected == "Voice Mode":
                 with st.spinner("Generating audio..."):
                     audio_data, sample_rate = fns.generate_audio_from_text(caption)
                 st.audio(data=audio_data, sample_rate=sample_rate)
-                audio_dict["data"] = audio_data
-                audio_dict["sample_rate"] = sample_rate
                 imgs.append(image)
                 caps.append(caption)
-                audios.append(audio_dict)
+                audios.append({
+                    "data": audio_data,
+                    "sample_rate": sample_rate
+                })
         message = {"role": "assistant", "content": imgs, "caption": captions, "audio": audios}
         st.session_state.messages_voice.append(message)
 

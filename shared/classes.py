@@ -10,6 +10,7 @@ import chromadb
 
 @unique
 class Modalities(Enum):
+    """A class containing available modality conversions"""
     ti = "text_to_image"
     it = "image_to_text"
     vt = "voice_to_text"
@@ -17,6 +18,7 @@ class Modalities(Enum):
 
     @staticmethod
     def get_modality_config(modality) -> dict:
+        """Get the config for a given modality"""
         config = None
 
         if modality == Modalities.ti:
@@ -43,6 +45,7 @@ class Modalities(Enum):
 
 @dataclass
 class Model:
+    """A class containing a standard model setup"""
     dataframe: pd.DataFrame = None
     model_id:str = None
     device:str = "cpu"
@@ -51,7 +54,7 @@ class Model:
     tokenizer: CLIPTokenizer = None
 
     def get_model_info(self, modality) -> tuple:
-
+        """Get the information needed for a model, suct as the model, processor, and tokenizer"""
         # Get the model, processor & tokenizer to use
         modality_config = Modalities.get_modality_config(modality)
 
@@ -64,7 +67,8 @@ class Model:
         # Return model, processor & tokenizer
         return self.model, self.processor, self.tokenizer
 
-    def get_single_text_embedding(self, query: str) -> np.ndarray: 
+    def get_single_text_embedding(self, query: str) -> np.ndarray:
+        """Create text embeddings and convert them to a numpy array""" 
         inputs = self.tokenizer(query, return_tensors = "pt")
         text_embeddings = self.model.get_text_features(**inputs)
         # convert the embeddings to numpy array
@@ -72,6 +76,7 @@ class Model:
         return embedding_as_np
 
     def get_single_image_embedding(self, the_image: PIL.JpegImagePlugin.JpegImageFile) -> np.ndarray:
+        """Create image embeddings and convert them to a numpy array""" 
         image = self.processor(
                 text = None,
                 images = the_image,
@@ -85,11 +90,13 @@ class Model:
 
 @dataclass
 class Chroma:
+    """A class containing methods used to interect with Chromadb"""
     collection_name: str = None
     collection: chromadb.Collection = None
     client: chromadb.PersistentClient = chromadb.PersistentClient(path="db/")
 
     def create_collection(self, db_metadata: dict) -> chromadb.Collection:
+        """Create a Chromadb collection"""
         self.collection = self.client.create_collection(
             name=self.collection_name,
             metadata=db_metadata
@@ -97,10 +104,12 @@ class Chroma:
         return self.collection
     
     def get_collection(self) -> chromadb.Collection:
+        """Get an existing collection"""
         self.collection = self.client.get_collection(name=self.collection_name)
         return self.collection
 
     def add_data(self, dataframe: pd.DataFrame) -> None:
+        """Add or update existing data in Chromadb collection"""
         dataframe["vector_id"] = dataframe.index
         dataframe["vector_id"] = dataframe["vector_id"].apply(str)
         dataframe["img_embeddings"] = sum(dataframe["img_embeddings"].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x), [])
