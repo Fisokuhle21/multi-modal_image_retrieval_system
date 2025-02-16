@@ -1,2 +1,5 @@
 images
+audio
 .venv
+*.pyc
+db
