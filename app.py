@@ -2,17 +2,27 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 import shared.functions as fns
 
+def save_text_feedback(index) -> None:
+    st.session_state.messages_text[index]["feedback"] = st.session_state[f"feedback_{index}"]
+
+def save_voice_feedback(index) -> None:
+    st.session_state.messages_voice[index]["feedback"] = st.session_state[f"feedback_{index}"]
+
 def clear_text_chat_history() -> None:
     st.session_state.messages_text = []
 
 def clear_voice_chat_history() -> None:
     st.session_state.messages_voice = []
 
+def rerun() -> None:
+    st.rerun()
+
 def main() -> None:
     st.set_page_config(page_title="Multimodal Image Retrieval System")
     selected = option_menu(
         menu_title = None,
         options = ["Text Mode", "Voice Mode"],
+        icons=['card-text', 'record-btn'],
         default_index=0,
         orientation="horizontal",
         styles={
@@ -22,8 +32,6 @@ def main() -> None:
             "nav-link-selected": {"background-color": "purple", "padding-top": "-100px"}
         }
     )
-
-    audio_value = None
 
     if selected == "Text Mode":
         st.title('Text Mode')
@@ -36,11 +44,20 @@ def main() -> None:
             st.session_state.messages_text = []
 
         # Display or clear chat messages
-        for message in st.session_state.messages_text:
+        for i, message in enumerate(st.session_state.messages_text):
             with st.chat_message(message["role"], avatar='icons/text_user.png' if message["role"] == "user" else "icons/assistant.png"):
                 if message["role"] == "user":
                     st.write(message["content"])
                 else:
+                    feedback = message.get("feedback", None)
+                    st.session_state[f"feedback_{i}"] = feedback
+                    st.feedback(
+                        "thumbs",
+                        key=f"feedback_{i}",
+                        disabled=feedback is not None,
+                        on_change=save_text_feedback,
+                        args=[i],
+                    )
                     columns = st.columns(3, vertical_alignment="top")
                     for col, image, caption in zip(columns, message["content"], message["caption"]):
                         with col:
@@ -72,13 +89,21 @@ def main() -> None:
                     imgs.append(image)
                     caps.append(caption)
             message = {"role": "assistant", "content": imgs, "caption": caps}
+            st.feedback(
+                "thumbs",
+                key=f"feedback_{len(st.session_state.messages_text)}",
+                on_change=save_text_feedback,
+                args=[len(st.session_state.messages_text)],
+            )
             st.session_state.messages_text.append(message)
         
         if st.session_state.messages_text != []:
-            st.button('Clear Chat History', on_click=clear_text_chat_history)
+            st.button('Clear Chat History', on_click=clear_text_chat_history, icon=":material/delete:")
 
 
     if selected == "Voice Mode":
+        audio_value = None
+        prompt = None
         st.title('Voice Mode')
 
         msg = st.chat_message("assistant", avatar='icons/assistant.png')
@@ -89,12 +114,21 @@ def main() -> None:
             st.session_state.messages_voice = []
 
         # Display or clear chat messages
-        for message in st.session_state.messages_voice:
+        for i, message in enumerate(st.session_state.messages_voice):
             with st.chat_message(message["role"], avatar='icons/voice_user.png' if message["role"] == "user" else "icons/assistant.png"):
                 if message["role"] == "user":
                     st.audio(message["audio"])
                     st.write(message["content"])
                 else:
+                    feedback = message.get("feedback", None)
+                    st.session_state[f"feedback_{i}"] = feedback
+                    st.feedback(
+                        "thumbs",
+                        key=f"feedback_{i}",
+                        disabled=feedback is not None,
+                        on_change=save_voice_feedback,
+                        args=[i],
+                    )
                     columns = st.columns(3, vertical_alignment="top")
                     for col, image, cap, audio in zip(columns, message["content"], message["caption"], message["audio"]):
                         with col:
@@ -103,7 +137,7 @@ def main() -> None:
                             st.audio(data=audio["data"], sample_rate=audio["sample_rate"])
 
         # User-provided prompt
-        if st.session_state.messages_voice == [] or st.session_state.messages_voice[-1]["role"] == "assistant":
+        if (audio_value == None and prompt == None) or (len(st.session_state.messages_voice) >= 1 and prompt != st.session_state.messages_voice[-1]["content"]):
             with st.chat_message("user", avatar='icons/voice_user.png'):
                 audio_value = st.audio_input("Record a voice message")
 
@@ -140,10 +174,19 @@ def main() -> None:
                         "sample_rate": sample_rate
                     })
             message = {"role": "assistant", "content": imgs, "caption": captions, "audio": audios}
+            st.feedback(
+                "thumbs",
+                key=f"feedback_{len(st.session_state.messages_voice)}",
+                on_change=save_voice_feedback,
+                args=[len(st.session_state.messages_voice)],
+            )
             st.session_state.messages_voice.append(message)
+            audio_value = None
         
         if st.session_state.messages_voice != []:
-            st.button('Clear Chat History', on_click=clear_voice_chat_history)
+            st.button('New request', on_click=rerun, type="primary", icon=":material/add_circle:")
+        if st.session_state.messages_voice != []:
+            st.button('Clear Chat History', on_click=clear_voice_chat_history, icon=":material/delete:")
 
     hide_the_style = """
                     <style>
@@ -156,6 +199,7 @@ def main() -> None:
                     </style>
                     """
     st.markdown(hide_the_style,unsafe_allow_html=True)
+
 
 if __name__ == "__main__":
     main()
