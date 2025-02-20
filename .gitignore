@@ -4,3 +4,4 @@ audio
 db
 .venv
 *.pyc
+__pycache__
