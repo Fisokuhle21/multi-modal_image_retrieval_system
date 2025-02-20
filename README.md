@@ -45,8 +45,9 @@ An image retrieval system that takes in a user query in text/voice format and re
 
 ## Usage
 **Run the Streamlit app locally:**
-    ```sh
-    streamlit run app.py
+```sh
+streamlit run app.py
+```
 
 ## Deployment
 1. **Push your code to Github.**
