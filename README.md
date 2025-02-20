@@ -40,7 +40,7 @@ An image retrieval system that takes in a user query in text/voice format and re
     pytest tests/test_home.py
 
 2. **Test that all the important chat elements are there**
-    ``sh
+    ```sh
     pytest tests/test_elements.py
 
 ## Usage
