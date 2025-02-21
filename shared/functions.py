@@ -28,7 +28,6 @@ def get_results(query: str, collection: chromadb.Collection) -> dict:
 def run_text_to_image(query: str, create_collection: bool=False, add_data: bool=False) -> dict:
     """Run the process to retrieve images based on the a user query"""
     df = pd.read_csv("images/image.csv")
-    df.drop(columns=["Unnamed: 0"], inplace=True)
     df["image"] = df["filepath"].apply(lambda x: Image.open(x))
 
     image_data_df = get_all_images_embedding(df, "image")

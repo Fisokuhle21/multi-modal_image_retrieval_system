@@ -137,7 +137,7 @@ def main() -> None:
                             st.audio(data=audio["data"], sample_rate=audio["sample_rate"])
 
         # User-provided prompt
-        if (audio_value == None and prompt == None) or (len(st.session_state.messages_voice) >= 1 and prompt != st.session_state.messages_voice[-1]["content"]):
+        if audio_value == None or prompt == None or (len(st.session_state.messages_voice) >= 1 and st.session_state.messages_voice[-1]["role"] != "user"):
             with st.chat_message("user", avatar='icons/voice_user.png'):
                 audio_value = st.audio_input("Record a voice message")
 
@@ -146,6 +146,8 @@ def main() -> None:
                     prompt = fns.convert_audio_to_text(audio_value)
                     st.write(prompt)
                     st.session_state.messages_voice.append({"role": "user", "content": prompt, "caption": "a user's input", "audio": audio_value})
+
+                    audio_value = None
 
         # Generate a new response if last message is not from assistant
         if st.session_state.messages_voice != [] and st.session_state.messages_voice[-1]["role"] != "assistant":
@@ -181,7 +183,7 @@ def main() -> None:
                 args=[len(st.session_state.messages_voice)],
             )
             st.session_state.messages_voice.append(message)
-            audio_value = None
+            prompt = None
         
         if st.session_state.messages_voice != []:
             st.button('New request', on_click=rerun, type="primary", icon=":material/add_circle:")

@@ -1,15 +1,18 @@
-# MMIRS App
+# Multi-modal Image Retrieval System (MMIRS) App
 
 ## Description  
 An image retrieval system that takes in a user query in text/voice format and retrieves top images that match the user's request. The output are top three images with captions and also an option to get a voice output describing the images returned. All the models used are open source.
 
-![The project design](design/MMIR.png)
-
-## Table of Contents  
+## Table of Contents
+- [Approach](#approach)
 - [Installation](#installation)
 - [Testing](#testing)
 - [Usage](#usage)
 - [Deployment](#deployment)
+
+## Approach
+
+![The project design](design/MMIR.png)
 
 ## Installation  
 
@@ -44,14 +47,18 @@ An image retrieval system that takes in a user query in text/voice format and re
     pytest tests/test_elements.py
 
 ## Usage
-**Run the Streamlit app locally:**
-```sh
-streamlit run app.py
-```
+1. **(If running for the first time) Add the image data to Chromadb collection and data**
+    - call ```run_text_to_image()``` in ```shared/functions.py``` with the variables ```create_collection``` and ```add_data``` set to True
+2. **Run the Streamlit app locally:**
+    ```sh
+    streamlit run app.py
+    ```
 
 ## Deployment
-1. **Push your code to Github.**
+1. (Optional) Upload the session data to persistant data store to avoid the data being cleared on reload. 
 
-2. **Set up a CI/CD workflow using github actions or codepipeline (AWS)**
+2. Push your code to Github.
 
-3. **Deploy on the Streamlit Cloud for free (no need for step 2) or on a Server**
+3. Set up a CI/CD workflow using github actions or codepipeline (AWS)
+
+4. Deploy on the Streamlit Cloud for free (no need for step 3) or on a Server
